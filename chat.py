@@ -28,9 +28,6 @@ class ChatLogger:
             self.line_buffer = lines.pop()
             for line in lines:
                 if line.endswith("chat"):
-                    print("GOT HERE")
-                    print("Line buffer:", self.line_buffer)
-                    print("Message:", message)
                     await self.chat_mode()
                 new_line = line + '\n'
                 self.scrollback += new_line
@@ -57,22 +54,23 @@ class ChatLogger:
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
         print()
         self.reset_conversation()
-        try:
-            while True:
-                prompt = input("?> ")
-                if prompt.strip() == "":
-                    continue
-                if prompt.strip() == "exit":
-                    # Put the terminal back in cbreak mode after the chat
-                    # tty.setcbreak(sys.stdin.fileno())
-                    raise ChatInterruption
-                self.conversation.append({"role": "user", "content": prompt})
-                async for line in fetch_chat_completion(self.conversation):
-                    print(line)
-                    self.conversation.append({"role": "assistant", "content": line})
-                    subprocess.run("say -v Daniel --rate 220 -f -", shell=True, text=True, input=line)
-        except KeyboardInterrupt:
-            pass  # Return control to the shell wrapper
+        while True:
+            prompt = input("?> ")
+            if prompt.strip() == "":
+                continue
+            if prompt.strip() == "exit":
+                raise ChatInterruption
+            if prompt.strip() == "pdb":
+                pdb.set_trace()
+                continue
+            self.conversation.append({"role": "user", "content": prompt})
+            async for line in fetch_chat_completion(self.conversation):
+                print(line)
+                self.conversation.append({"role": "assistant", "content": line})
+                try:
+                    subprocess.run("say -v Daniel --rate 220 -f -", shell=True, text=True, input=line, check=True)
+                except subprocess.CalledProcessError:
+                    break
 
 
 async def fetch_chat_completion(prompt, model="gpt-4"):
