@@ -40,7 +40,7 @@ class ChatLogger:
         dt = datetime.now(timezone.utc).astimezone().strftime('%Y-%m-%dT%H:%M:%S%z')
         system_prompt = textwrap.dedent(f"""
         You are a helpful command line troubleshooting assistant with knowledge of events up to 2021-09.
-        Your responses will be ready aloud by a screen reader line-by-line, so keep it very brief, format accordingly,
+        Your responses will be read aloud by a screen reader line-by-line, so keep it very brief, format accordingly,
         and frequently break things up by new lines whenever possible.
         Right now it is {dt}, and the user's terminal scrollback buffer is:
         
