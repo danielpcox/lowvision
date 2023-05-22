@@ -65,6 +65,7 @@ if __name__ == "__main__":
     parser.add_argument('--shell', default='/bin/bash')
     parser.add_argument('--scrollback', default=1000, type=int)
     parser.add_argument('--model', default='gpt-4')
-    parser.add_argument('--speak_cmd', default='say -v Daniel --rate 220 -f -')
+    #parser.add_argument('--speak_cmd', default='say -v Daniel --rate 220 -f -')
+    parser.add_argument('--speak_cmd', default='espeak -ven-gb -s 220')
     args = parser.parse_args()
     asyncio.run(main(args))
