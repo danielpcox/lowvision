@@ -109,23 +109,23 @@ async def split_markdown_chunks(prompt, max_chars=1900):
 
     async for line in fetch_chat_completion(prompt):
         # print("LINE:", line)
-        if line.startswith(which := "```") or line.startswith(which := "\n```"):
-            language = line[len(which):].strip()
+        #if line.startswith(which := "```") or line.startswith(which := "\n```"):
+        #    language = line[len(which):].strip()
 
-            # Code blocks always get their own chunk
-            if not current_chunk:
-                current_chunk += line
-            elif not in_code_block:
-                yield current_chunk
-                current_chunk = line
-            else:
-                current_chunk += line
-                yield current_chunk
-                current_chunk = ""
-            in_code_block = not in_code_block
+        #    # Code blocks always get their own chunk
+        #    if not current_chunk:
+        #        current_chunk += line
+        #    elif not in_code_block:
+        #        yield current_chunk
+        #        current_chunk = line
+        #    else:
+        #        current_chunk += line
+        #        yield current_chunk
+        #        current_chunk = ""
+        #    in_code_block = not in_code_block
 
         # continue to extend the current chunk
-        elif len(current_chunk) + len(line) <= max_chars:
+        if len(current_chunk) + len(line) <= max_chars:
             current_chunk += line
             if not in_code_block:  # just print the line
                 yield current_chunk
