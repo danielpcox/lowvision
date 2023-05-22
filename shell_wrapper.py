@@ -1,3 +1,5 @@
+import argparse
+import asyncio
 import os
 import pty
 import select
@@ -6,26 +8,11 @@ import sys
 import termios
 import tty
 
-
-class ShellLogger:
-    def __init__(self, log_file):
-        self.log_file = log_file
-        self.output_buffer = ''
-
-    def log(self, message):
-        message = message.decode('utf-8', errors='ignore').replace('\r', '')
-        with open(self.log_file, 'a') as file:
-            self.output_buffer += message
-            if '\n' in self.output_buffer:
-                lines = self.output_buffer.split('\n')
-                self.output_buffer = lines.pop()
-                for line in lines:
-                    file.write(f'{line}\n')
+import chat
 
 
-def main():
-    log_file = 'bash.log'
-    logger = ShellLogger(log_file)
+# Wraps bash to maintain a buffer of recent IO to discuss with ChatGPT
+async def main(config: argparse.Namespace):
     pid, fd = pty.fork()
 
     def signal_handler(signum, frame):
@@ -35,10 +22,10 @@ def main():
     signal.signal(signal.SIGTSTP, signal_handler)
 
     if pid == 0:  # child process
-        os.execv('/bin/bash', ['/bin/bash'])
+        os.execv(config.shell, [config.shell])
     else:  # parent process
-
         old_settings = termios.tcgetattr(sys.stdin)
+        logger = chat.ChatLogger(config, old_settings)
         tty.setcbreak(sys.stdin.fileno())
 
         poller = select.poll()
@@ -55,14 +42,16 @@ def main():
                     elif event_fd == fd:
                         data = os.read(fd, 1024)
                         if data:
-                            os.write(sys.stdout.fileno(), data)
-                            logger.log(data)
+                            try:
+                                await logger.log(data)
+                                os.write(sys.stdout.fileno(), data)
+                            except chat.ChatInterruption:
+                                continue
                         else:
                             poller.unregister(fd)
                             break
                 if not any(items[1] & (select.POLLIN | select.POLLHUP | select.POLLERR) for items in events):
                     break
-
         except OSError:
             pass
         finally:
@@ -71,4 +60,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # argparse to get the shell and the size of the scrollback buffer (defaults to 1000 lines)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--shell', default='/bin/bash')
+    parser.add_argument('--scrollback', default=1000, type=int)
+    parser.add_argument('--model', default='gpt-4')
+    args = parser.parse_args()
+    asyncio.run(main(args))
