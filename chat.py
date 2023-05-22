@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import io
 import pdb
 import subprocess
 import sys
@@ -60,92 +59,48 @@ class ChatLogger:
             if prompt.strip() == "":
                 continue
             if prompt.strip() == "exit":
-                raise ChatInterruption
+                break
             if prompt.strip() == "pdb":
                 pdb.set_trace()
                 continue
             self.conversation.append({"role": "user", "content": prompt})
-            async for line in fetch_chat_completion(self.conversation):
-                print(line)
+            async for line in self.fetch_chat_completion(self.conversation):
                 self.conversation.append({"role": "assistant", "content": line})
                 try:
                     subprocess.run(self.config.speak_cmd, shell=True, text=True, input=line, check=True)
                 except subprocess.CalledProcessError:
                     break
+            print()
 
+        tty.setcbreak(sys.stdin.fileno())
+        raise ChatInterruption
 
-async def fetch_chat_completion(prompt, model="gpt-4"):
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=prompt,
-        stream=True,
-    )
-    line = []
-    for chunk in response:
-        delta = chunk['choices'][0]['delta']
-        if 'content' in delta:
-            content = delta['content']
-            # print("CONTENT:", content)
-            if '\n' in content:
-                segments = content.split('\n', 1)
-                ending = "\n".join(segments[:-1])
-                remainder = segments[-1]
-                line.append(f'{ending}\n')
-                yield "".join(line)
-                line = [remainder]
-            else:
-                line.append(content)
-        await asyncio.sleep(0)
+    async def fetch_chat_completion(self, prompt):
+        response = openai.ChatCompletion.create(
+            model=self.config.model,
+            messages=prompt,
+            stream=True,
+        )
+        line = []
+        for chunk in response:
+            delta = chunk['choices'][0]['delta']
+            if 'content' in delta:
+                content = delta['content']
+                sys.stdout.write(content)
+                sys.stdout.flush()
+                if '\n' in content:
+                    segments = content.split('\n', 1)
+                    ending = "\n".join(segments[:-1])
+                    remainder = segments[-1]
+                    line.append(f'{ending}\n')
+                    yield "".join(line)
+                    line = [remainder]
+                else:
+                    line.append(content)
+            await asyncio.sleep(0)
 
-    if line:
-        yield "".join(line)
-
-
-async def split_markdown_chunks(prompt, max_chars=1900):
-    # lines = markdown_text.splitlines(True)  # Keep line breaks in the list elements
-    current_chunk = ""
-    in_code_block = False
-    language = ""
-
-    async for line in fetch_chat_completion(prompt):
-        # print("LINE:", line)
-        #if line.startswith(which := "```") or line.startswith(which := "\n```"):
-        #    language = line[len(which):].strip()
-
-        #    # Code blocks always get their own chunk
-        #    if not current_chunk:
-        #        current_chunk += line
-        #    elif not in_code_block:
-        #        yield current_chunk
-        #        current_chunk = line
-        #    else:
-        #        current_chunk += line
-        #        yield current_chunk
-        #        current_chunk = ""
-        #    in_code_block = not in_code_block
-
-        # continue to extend the current chunk
-        if len(current_chunk) + len(line) <= max_chars:
-            current_chunk += line
-            if not in_code_block:  # just print the line
-                yield current_chunk
-                current_chunk = ""
-
-        # write out the current chunk and start a new one
-        else:
-
-            # code blocks need to be split into two functional code blocks
-            if in_code_block:
-                current_chunk += "```\n"
-                yield current_chunk
-                current_chunk = f"```{language}\n"
-                current_chunk += line
-            else:
-                yield current_chunk
-                current_chunk = line
-
-    if current_chunk:
-        yield current_chunk
+        if line:
+            yield "".join(line)
 
 
 class ChatInterruption(Exception):
