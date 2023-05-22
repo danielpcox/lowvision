@@ -14,6 +14,7 @@ import openai
 
 class ChatLogger:
     def __init__(self, config: argparse.Namespace, old_term_settings: list):
+        self.config = config
         self.old_settings = old_term_settings
         self.line_buffer = ''
         self.scrollback = ''
@@ -68,7 +69,7 @@ class ChatLogger:
                 print(line)
                 self.conversation.append({"role": "assistant", "content": line})
                 try:
-                    subprocess.run("say -v Daniel --rate 220 -f -", shell=True, text=True, input=line, check=True)
+                    subprocess.run(self.config.speak_cmd, shell=True, text=True, input=line, check=True)
                 except subprocess.CalledProcessError:
                     break
 
