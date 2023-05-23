@@ -8,7 +8,7 @@ import sys
 import termios
 import tty
 
-import chat
+import lowvision.chat as chat
 
 
 # Wraps bash to maintain a buffer of recent IO to discuss with ChatGPT

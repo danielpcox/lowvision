@@ -1,0 +1,23 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lowvision"
+version = "0.1.0"
+description = "Tools for low-vision coders"
+authors = [
+    {name = "Daniel Cox", email = "danielpcox@gmail.com"}
+]
+readme = "README.md"
+homepage = "https://github.com/danielpcox/lowvision"
+requires-python = ">=3.7"
+dependencies = [
+    "openai",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["nbs*"]
