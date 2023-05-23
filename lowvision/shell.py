@@ -13,6 +13,9 @@ import lowvision.chat as chat
 
 # Wraps bash to maintain a buffer of recent IO to discuss with ChatGPT
 async def main(config: argparse.Namespace):
+    terminal_size = os.get_terminal_size()
+    env = os.environ
+    print(terminal_size)
     pid, fd = pty.fork()
 
     def signal_handler(signum, frame):
@@ -22,7 +25,9 @@ async def main(config: argparse.Namespace):
     signal.signal(signal.SIGTSTP, signal_handler)
 
     if pid == 0:  # child process
-        os.execv(config.shell, [config.shell])
+        env['LINES'] = str(terminal_size.lines)
+        env['COLUMNS'] = str(terminal_size.columns)
+        os.execve(config.shell, [config.shell], env)
     else:  # parent process
         old_settings = termios.tcgetattr(sys.stdin)
         logger = chat.ChatLogger(config, old_settings)
@@ -47,6 +52,8 @@ async def main(config: argparse.Namespace):
                                 os.write(sys.stdout.fileno(), data)
                             except chat.ChatInterruption:
                                 continue
+                            finally:
+                                tty.setcbreak(sys.stdin.fileno())
                         else:
                             poller.unregister(fd)
                             break
@@ -65,7 +72,6 @@ if __name__ == "__main__":
     parser.add_argument('--shell', default='/bin/bash')
     parser.add_argument('--scrollback', default=1000, type=int)
     parser.add_argument('--model', default='gpt-4')
-    #parser.add_argument('--speak_cmd', default='say -v Daniel --rate 220 -f -')
-    parser.add_argument('--speak_cmd', default='espeak -v en-us -s 220')
+    parser.add_argument('--tts', default='espeak -v en-us -s 220')
     args = parser.parse_args()
     asyncio.run(main(args))

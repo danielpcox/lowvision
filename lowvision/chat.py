@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import io
 import pdb
 import subprocess
 import sys
@@ -9,6 +10,7 @@ import tty
 from datetime import datetime, timezone
 
 import openai
+from aioconsole import ainput
 
 
 class ChatLogger:
@@ -55,7 +57,10 @@ class ChatLogger:
         print()
         self.reset_conversation()
         while True:
-            prompt = input("?> ")
+            try:
+                prompt = await ainput("?> ")
+            except EOFError:
+                break
             if prompt.strip() == "":
                 continue
             if prompt.strip() == "exit":
@@ -64,18 +69,49 @@ class ChatLogger:
                 pdb.set_trace()
                 continue
             self.conversation.append({"role": "user", "content": prompt})
+            q = asyncio.Queue()
+            asyncio.create_task(self.speak(q))
             async for line in self.fetch_chat_completion(self.conversation):
                 self.conversation.append({"role": "assistant", "content": line})
-                try:
-                    subprocess.run(self.config.speak_cmd, shell=True, text=True, input=line, check=True)
-                except subprocess.CalledProcessError:
-                    break
+                # pdb.set_trace()
+                # subprocess.run(self.config.tts, shell=True, text=True, input=line, check=True)
+                await q.put(line)
+            await q.put(None)  # terminate the speaking coroutine
             print()
 
-        tty.setcbreak(sys.stdin.fileno())
         raise ChatInterruption
 
+    async def speak(self, q: asyncio.Queue):
+        while True:
+            line = await q.get()
+            if line is None:
+                break
+            proc = await asyncio.create_subprocess_shell(self.config.tts, stdin=asyncio.subprocess.PIPE)
+            proc.stdin.write(line.encode())
+            await proc.stdin.drain()
+            proc.stdin.close()
+            await proc.wait()
+            q.task_done()
+
+    # Asyncify the OpenAI API responses so we don't interrupt speech
     async def fetch_chat_completion(self, prompt):
+        loop = asyncio.get_running_loop()
+        generator = self._fetch_chat_completion(prompt)
+
+        def next_from_generator():
+            try:
+                return next(generator)
+            except StopIteration:
+                return None
+
+        while True:
+            chunk = await asyncio.to_thread(next_from_generator)
+            if chunk is None:
+                break
+
+            yield chunk
+
+    def _fetch_chat_completion(self, prompt):
         response = openai.ChatCompletion.create(
             model=self.config.model,
             messages=prompt,
@@ -97,7 +133,6 @@ class ChatLogger:
                     line = [remainder]
                 else:
                     line.append(content)
-            await asyncio.sleep(0)
 
         if line:
             yield "".join(line)
