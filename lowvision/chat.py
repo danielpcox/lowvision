@@ -1,16 +1,13 @@
 import argparse
 import asyncio
-import io
 import pdb
-import subprocess
+import signal
 import sys
 import termios
 import textwrap
-import tty
 from datetime import datetime, timezone
 
 import openai
-from aioconsole import ainput
 
 
 class ChatLogger:
@@ -21,6 +18,7 @@ class ChatLogger:
         self.scrollback = ''
         self.max_chars = config.scrollback
         self.conversation = []
+        self.interrupt_response = False
 
     async def log(self, message: bytes):
         message = message.decode('utf-8', errors='ignore').replace('\r', '')
@@ -52,13 +50,21 @@ class ChatLogger:
         ]
 
     async def chat_mode(self):
+
         # Put the terminal back in line-buffered mode for the chat
-        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_settings)
+        termios.tcsetattr(sys.stdin.fileno(), termios.TCSAFLUSH, self.old_settings)
+
+        # Handle Ctrl-C differently in chat mode
+        def ctrl_C(signum, frame):
+            self.interrupt_response = True
+
+        signal.signal(signal.SIGINT, ctrl_C)
+
         print()
         self.reset_conversation()
         while True:
             try:
-                prompt = await ainput("?> ")
+                prompt = await asyncio.to_thread(input, "?> ")
             except EOFError:
                 break
             if prompt.strip() == "":
@@ -71,6 +77,7 @@ class ChatLogger:
             self.conversation.append({"role": "user", "content": prompt})
             q = asyncio.Queue()
             asyncio.create_task(self.speak(q))
+            self.interrupt_response = False
             async for line in self.fetch_chat_completion(self.conversation):
                 self.conversation.append({"role": "assistant", "content": line})
                 # pdb.set_trace()
@@ -95,7 +102,6 @@ class ChatLogger:
 
     # Asyncify the OpenAI API responses so we don't interrupt speech
     async def fetch_chat_completion(self, prompt):
-        loop = asyncio.get_running_loop()
         generator = self._fetch_chat_completion(prompt)
 
         def next_from_generator():
@@ -119,6 +125,8 @@ class ChatLogger:
         )
         line = []
         for chunk in response:
+            if self.interrupt_response:
+                return
             delta = chunk['choices'][0]['delta']
             if 'content' in delta:
                 content = delta['content']
