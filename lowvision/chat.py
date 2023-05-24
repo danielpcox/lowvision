@@ -123,7 +123,7 @@ class ChatLogger:
             messages=prompt,
             stream=True,
         )
-        line = []
+        line = ""
         for chunk in response:
             if self.interrupt_response:
                 return
@@ -132,18 +132,15 @@ class ChatLogger:
                 content = delta['content']
                 sys.stdout.write(content)
                 sys.stdout.flush()
-                if '\n' in content:
-                    segments = content.split('\n', 1)
-                    ending = "\n".join(segments[:-1])
-                    remainder = segments[-1]
-                    line.append(f'{ending}\n')
-                    yield "".join(line)
-                    line = [remainder]
+                if (sep := '\n') in content or (sep := '.') in content:
+                    left, rest = content.split(sep, 1)
+                    line += left
+                    yield line
+                    line = rest
                 else:
-                    line.append(content)
-
+                    line += content
         if line:
-            yield "".join(line)
+            yield line
 
 
 class ChatInterruption(Exception):
