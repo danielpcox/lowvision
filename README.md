@@ -32,11 +32,11 @@ python -m lowvision.shell -h
 
 Without arguments, it will
 - launch Bash
-- with a 2000 character scrollback buffer
+- with a 3000 character scrollback buffer
 - use `espeak` for text-to-speech
 - and `gpt-3.5-turbo` as the ChatGPT model
 
-Here's an example that changes all of those defaults:
+Here's an example that changes those defaults:
 
 ```bash
 python -m lowvision.shell --shell /bin/sh \

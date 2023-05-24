@@ -92,13 +92,21 @@ async def main(config):
 
 
 if __name__ == "__main__":
+    if not os.getenv("OPENAI_API_KEY"):
+        print("Please set OPENAI_API_KEY environment variable to your OpenAI API key. See https://platform.openai.com/account/api-keys")
+        sys.exit(1)
     # argparse to get the shell and the size of the scrollback buffer (defaults to 1000 lines)
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--shell', default='/bin/bash')
-    parser.add_argument('--scrollback', default=2000, type=int)
-    parser.add_argument('--model', default='gpt-3.5-turbo')
-    parser.add_argument('--tts', default='espeak -v en-us -s 220')
-    parser.add_argument('--no-tts', action='store_true')
+    parser = argparse.ArgumentParser(
+        description="A shell wrapper that holds onto a scrollback buffer and provides a way to chat with ChatGPT about it.")
+    parser.add_argument('--shell', default='/bin/bash',
+                        help='Path to the shell used for executing commands (default: /bin/bash).')
+    parser.add_argument('--scrollback', default=3000, type=int,
+                        help='Number of characters (not tokens) to keep in the scrollback buffer (default: 3000). Consider the approximate token limit for your model. 1 token ~= 4 chars in English.')
+    parser.add_argument('--model', default='gpt-3.5-turbo',
+                        help="OpenAI model to use (default: 'gpt-3.5-turbo'). Try 'gpt-4'.")
+    parser.add_argument('--tts', default='espeak -v en-us -s 220',
+                        help="Text-to-speech command used to read ChatGPT responses aloud (default: 'espeak -v en-us -s 220'). On macOS, try 'say -v Daniel -r 220'.")
+    parser.add_argument('--no-tts', action='store_true', help='Disable text-to-speech of ChatGPT responses.')
 
     args = parser.parse_args()
     asyncio.run(main(args))
