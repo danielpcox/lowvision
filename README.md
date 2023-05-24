@@ -51,7 +51,7 @@ PING google.com (142.251.163.100): 56 data bytes
 --- google.com ping statistics ---
 1 packets transmitted, 1 packets received, 0.0% packet loss
 round-trip min/avg/max/stddev = 18.316/18.316/18.316/0.000 ms
-sh-3.2$ chat
+sh-3.2$ chat     
 ?> what happened?
 The user performed a ping test to google.com by sending 3 packets, and received a reply from one packet. The response shows the IP address of google.com and the round-trip time for the packet. The test was interrupted with ^C after receiving one response.
 ?> exit
