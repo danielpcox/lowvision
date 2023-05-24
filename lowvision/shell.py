@@ -32,7 +32,8 @@ async def main(config):
         print(f"\nStarting chat-aware shell wrapper around {config.shell}. "
               "Run `chat` to enter chat mode. Exit with `exit`. "
               "Ctrl-C interrupts text-to-speech. "
-              "Exit and re-run with `-h` to see options. \n")
+              "Exit and re-run with `-h` to see options.")
+        print("Option values: ", config.__dict__, "\n")
         # Parent process
         shell_pid = pid
 
@@ -97,5 +98,7 @@ if __name__ == "__main__":
     parser.add_argument('--scrollback', default=2000, type=int)
     parser.add_argument('--model', default='gpt-3.5-turbo')
     parser.add_argument('--tts', default='espeak -v en-us -s 220')
+    parser.add_argument('--no-tts', action='store_true')
+
     args = parser.parse_args()
     asyncio.run(main(args))

@@ -82,7 +82,8 @@ class ChatLogger:
                 self.conversation.append({"role": "assistant", "content": line})
                 # pdb.set_trace()
                 # subprocess.run(self.config.tts, shell=True, text=True, input=line, check=True)
-                await q.put(line)
+                if not self.config.no_tts:
+                    await q.put(line)
             await q.put(None)  # terminate the speaking coroutine
             print()
 
