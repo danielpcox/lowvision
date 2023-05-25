@@ -64,3 +64,16 @@ The user performed a ping test to google.com by sending 3 packets, and received 
 sh-3.2$
 ```
 
+### Installing as the default shell
+
+If you want to use this as your default shell, you could create a script like this (replacing the path to the Python
+environment where you installed `lowvision`) and then set your default shell to that script.
+
+```bash
+#!/bin/sh
+
+export OPENAI_API_KEY="whatever"
+/opt/homebrew/Caskroom/mambaforge/base/bin/python3 -m lowvision.shell
+```
+
+Then make it executable, and set it as your default shell with `chsh -s /path/to/your/script.sh`.
