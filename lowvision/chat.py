@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 import openai
 
+from lowvision.chat_mode_trigger import chat_mode_trigger
 
 class ChatLogger:
     def __init__(self, config: argparse.Namespace, old_term_settings: list):
@@ -22,7 +23,8 @@ class ChatLogger:
 
         # We only care about the input so we can watch for the "chat" command
         self.input_buffer = ''
-        self.trigger_chat_mode = False
+        self.chat_in_input = False
+        chat_mode_trigger.unlink(missing_ok=True)
 
     async def watch_for_trigger(self, message: bytes):
         message = message.decode('utf-8', errors='ignore').replace('\r', '')
@@ -31,8 +33,8 @@ class ChatLogger:
             lines = self.input_buffer.split('\n')
             self.input_buffer = lines.pop()
             for line in lines:
-                if line == "chat":
-                    self.trigger_chat_mode = True
+                if "chat" in line:
+                    self.chat_in_input = True
 
     async def log(self, message: bytes):
 
@@ -42,9 +44,12 @@ class ChatLogger:
             lines = self.line_buffer.split('\n')
             self.line_buffer = lines.pop()
             for line in lines:
-                if "chat" in line and self.trigger_chat_mode:
-                    self.trigger_chat_mode = False
-                    await self.chat_mode()
+                if "chat" in line and self.chat_in_input:
+                    await asyncio.sleep(0.2) # wait for trigger file to exist
+                    if chat_mode_trigger.exists():
+                        self.chat_in_input = False
+                        chat_mode_trigger.unlink(missing_ok=True)
+                        await self.chat_mode()
                 new_line = line + '\n'
                 self.scrollback += new_line
                 while len(self.scrollback) > self.max_chars:

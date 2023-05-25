@@ -12,6 +12,8 @@ A wrapper for your shell that lets you talk to ChatGPT about the recent interact
 
 ### Installation
 
+From the Python environment _that will be activated when your chosen shell starts_, run
+
 ```bash
 pip install lowvision
 ```
@@ -20,6 +22,11 @@ Then set [your OpenAI API key](https://platform.openai.com/account/api-keys)
 ```bash
 export OPENAI_API_KEY='whatever'
 ```
+
+NOTE: The reason for installing in the Python environment active when your shell starts is because a `chat` command is
+installed by `lowvision` that activates chat mode, and it must be available inside your wrapped shell.
+if you've installed in a virtualenv instead, you'll need to activate that virtualenv after running the shell wrapper,
+or `chat` won't properly activate chat mode.
 
 ### Usage
 

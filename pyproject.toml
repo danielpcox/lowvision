@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lowvision"
-version = "0.2.5"
+version = "0.3.0"
 description = "Tools for low-vision coders"
 authors = [
     {name = "Daniel Cox", email = "danielpcox@gmail.com"}
@@ -17,6 +17,9 @@ requires-python = ">=3.9"
 dependencies = [
     "openai",
 ]
+
+[project.scripts]
+chat = "lowvision.chat_mode_trigger:set_trigger"
 
 [tool.setuptools.packages.find]
 exclude = ["nbs*"]
