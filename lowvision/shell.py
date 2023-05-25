@@ -29,16 +29,16 @@ async def main(config):
         # Child process
         os.execv(config.shell, [config.shell])
     else:
+        # Parent process
         print(f"\nStarting chat-aware shell wrapper around {config.shell}. "
               "Run `chat` to enter chat mode. Exit with `exit`. "
               "Ctrl-C interrupts text-to-speech. "
               "Exit and re-run with `-h` to see options.")
         print("Option values: ", config.__dict__, "\n")
-        # Parent process
-        shell_pid = pid
 
-        def handle_signals(signal_number, frame):
-            os.kill(shell_pid, signal_number)
+        def handle_signals(signum, frame):
+            foreground_pgrp = os.tcgetpgrp(master_fd)
+            os.killpg(foreground_pgrp, signum)
 
         def handle_window_resize(signum, frame):
             size = get_terminal_size()

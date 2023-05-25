@@ -42,7 +42,7 @@ class ChatLogger:
             lines = self.line_buffer.split('\n')
             self.line_buffer = lines.pop()
             for line in lines:
-                if line.endswith("chat") and self.trigger_chat_mode:
+                if "chat" in line and self.trigger_chat_mode:
                     self.trigger_chat_mode = False
                     await self.chat_mode()
                 new_line = line + '\n'
