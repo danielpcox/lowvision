@@ -20,14 +20,30 @@ class ChatLogger:
         self.conversation = []
         self.interrupt_response = False
 
+        # We only care about the input so we can watch for the "chat" command
+        self.input_buffer = ''
+        self.trigger_chat_mode = False
+
+    async def watch_for_trigger(self, message: bytes):
+        message = message.decode('utf-8', errors='ignore').replace('\r', '')
+        self.input_buffer += message
+        if '\n' in self.input_buffer:
+            lines = self.input_buffer.split('\n')
+            self.input_buffer = lines.pop()
+            for line in lines:
+                if line == "chat":
+                    self.trigger_chat_mode = True
+
     async def log(self, message: bytes):
+
         message = message.decode('utf-8', errors='ignore').replace('\r', '')
         self.line_buffer += message
         if '\n' in self.line_buffer:
             lines = self.line_buffer.split('\n')
             self.line_buffer = lines.pop()
             for line in lines:
-                if line.endswith("chat"):
+                if line.endswith("chat") and self.trigger_chat_mode:
+                    self.trigger_chat_mode = False
                     await self.chat_mode()
                 new_line = line + '\n'
                 self.scrollback += new_line

@@ -66,6 +66,7 @@ async def main(config):
                         input_data = os.read(sys.stdin.fileno(), 1024)
                         if not input_data:
                             break
+                        await logger.watch_for_trigger(input_data)
                         os.write(master_fd, input_data)
 
                     if master_fd in r_fd:
